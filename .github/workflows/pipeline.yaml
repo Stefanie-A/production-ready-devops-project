@@ -91,11 +91,6 @@ jobs:
           cache-to: type=gha,mode=max
           load: true
 
-      - name: Debug — check image exists
-        run: |
-          docker images
-          echo "Looking for: ${{ env.IMAGE_NAME }}:${{ github.sha }}"
-
       - name: Trivy — Container Vulnerability Scan
         uses: aquasecurity/trivy-action@master
         with:
@@ -104,8 +99,8 @@ jobs:
           output: trivy-results.sarif
           severity: CRITICAL,HIGH
           exit-code: 0
-
-     - name: Push image to GHCR
+          
+      - name: Push image to GHCR
         if: github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v5
         with:
