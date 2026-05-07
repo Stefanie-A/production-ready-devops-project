@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 env:
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/todo-api
+  IMAGE_NAME: ghcr.io/stefanie-a/todo-api
   AWS_REGION: us-east-1
   EKS_CLUSTER: todo-app-prod-cluster
   K8S_NAMESPACE: app
