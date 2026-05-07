@@ -91,6 +91,11 @@ jobs:
           cache-to: type=gha,mode=max
           load: true
 
+      - name: Debug — check image exists
+        run: |
+          docker images
+          echo "Looking for: ${{ env.IMAGE_NAME }}:${{ github.sha }}"
+
       - name: Trivy — Container Vulnerability Scan
         uses: aquasecurity/trivy-action@master
         with:
