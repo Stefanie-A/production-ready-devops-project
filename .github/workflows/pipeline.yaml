@@ -230,7 +230,7 @@ jobs:
       - name: Update image tag in deployment manifest
         run: |
           sed -i "s|image: ghcr.io.*/todo-api:.*|image: ${{ env.IMAGE_NAME }}:${{ github.sha }}|g" \
-            k8s/templates/deployment.yaml
+            k8s/todo-api/templates/deployment.yaml
 
       - name: Commit and push
         run: |
