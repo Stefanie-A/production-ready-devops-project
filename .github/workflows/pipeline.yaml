@@ -209,7 +209,7 @@ jobs:
 
       - name: Deploy via Helm
         run: |
-          helm upgrade --install todo-api ./k8s/todo-api \
+          helm upgrade --install todo-api k8s/todo-api \
             --namespace ${{ env.K8S_NAMESPACE }} \
             --create-namespace \
             --set image.repository=${{ env.IMAGE_NAME }} \
@@ -237,13 +237,13 @@ jobs:
       - name: Update image tag in deployment manifest
         run: |
           sed -i "s|image: ghcr.io.*/todo-api:.*|image: ${{ env.IMAGE_NAME }}:${{ github.sha }}|g" \
-            k8s/deployment.yaml
+            k8s/templates/deployment.yaml
 
       - name: Commit and push
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add k8s/deployment.yaml
+          git add k8s/templates/deployment.yaml
           git diff --staged --quiet || \
             git commit -m "chore: update image tag to ${{ github.sha }} [skip ci]"
           git push
