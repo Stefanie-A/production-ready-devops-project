@@ -194,6 +194,10 @@ jobs:
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER }} --region ${{ env.AWS_REGION }}
 
+      - name: Create namespace if not exists
+        run: kubectl create namespace app --dry-run=client -o yaml | kubectl apply -f -
+
+
       - name: Create GHCR image pull secret
         run: |
           kubectl create secret docker-registry ghcr-pull-secret \
@@ -219,7 +223,7 @@ jobs:
           echo "App URL:"
           kubectl get svc todo-api -n ${{ env.K8S_NAMESPACE }} \
             -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
-            
+
   gitops-update:
     name: GitOps Image Tag Update
     runs-on: ubuntu-latest

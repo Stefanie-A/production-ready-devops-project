@@ -6,9 +6,11 @@ This project came out of a DevOps practical challenge — the goal was to take a
 
 The app itself is a Todo API built with FastAPI and Python. Nothing fancy — it's intentionally simple because the point of the project is everything around it, not the app itself.
 
-The infrastructure is all on AWS, provisioned with Terraform. The code is split into modules for the VPC, EKS cluster, IAM, and CloudWatch so each piece can be understood and changed independently. The app runs on EKS with a managed node group that scales between 1 and 4 nodes depending on load.
+The infrastructure is all on AWS, provisioned with Terraform. The code is split into modules for the VPC, EKS cluster and IAM so each piece can be understood and changed independently. The app runs on EKS with a managed node group that scales between 1 and 4 nodes depending on load.
 
 The CI/CD pipeline runs on GitHub Actions. When you push to main, it scans for secrets, runs SAST on the Python code, runs the test suite, builds and scans the Docker image for vulnerabilities, applies any infrastructure changes, deploys to the cluster, and commits the new image tag back to the repo. Pull requests get a Terraform plan posted as a comment so you can see what will change before it does. Authentication to AWS is done via OIDC — no long-lived credentials stored anywhere.
+
+![ALT text](diagram.png)
 
 ## Running locally
 
