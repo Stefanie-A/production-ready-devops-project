@@ -9,7 +9,7 @@ on:
 env:
   IMAGE_NAME: ghcr.io/stefanie-a/todo-api
   AWS_REGION: us-east-1
-  EKS_CLUSTER: todo-app-prod-cluster
+  EKS_CLUSTER: todo-eks-cluster
   K8S_NAMESPACE: app
   DEPLOYMENT_NAME: todo-api-deployment
 
