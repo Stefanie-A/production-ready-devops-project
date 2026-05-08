@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: todo-api
-          image: ghcr.io/stefanie-a/todo-api:v1 
+          image: ghcr.io/stefanie-a/todo-api:369dca0db549477552cb0257508a16426b38c25f
           ports:
             - containerPort: 8000
           env:
