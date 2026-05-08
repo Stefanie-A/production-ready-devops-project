@@ -207,16 +207,9 @@ jobs:
             --namespace=${{ env.K8S_NAMESPACE }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
-      - name: Deploy via Helm
+      - name: Deploy manifest
         run: |
-          helm upgrade --install todo-api k8s/todo-api \
-            --namespace ${{ env.K8S_NAMESPACE }} \
-            --create-namespace \
-            --set image.repository=${{ env.IMAGE_NAME }} \
-            --set image.tag=${{ github.sha }} \
-            --set imagePullSecrets[0].name=ghcr-pull-secret \
-            --wait \
-            --timeout 3m
+          kubectl apply -f k8s/templates/ -n ${{ env.K8S_NAMESPACE }}
 
       - name: Print app URL
         run: |

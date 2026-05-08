@@ -20,22 +20,6 @@ module "eks" {
 
   enable_cluster_creator_admin_permissions = true
 
-  access_entries = {
-    github_actions = {
-      principal_arn = "arn:aws:iam::902839103466:role/todo-app-prod-cicd-deploy-role"
-
-      policy_associations = {
-        admin = {
-          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-
-          access_scope = {
-            type = "cluster"
-          }
-        }
-      }
-    }
-  }
-
   eks_managed_node_groups = {
     default = {
       instance_types = [var.node_instance_type]
