@@ -209,7 +209,7 @@ jobs:
 
       - name: Deploy via Helm
         run: |
-          helm upgrade --install todo-api ./helm/todo-api \
+          helm upgrade --install todo-api ./k8s/todo-api \
             --namespace ${{ env.K8S_NAMESPACE }} \
             --create-namespace \
             --set image.repository=${{ env.IMAGE_NAME }} \
@@ -232,7 +232,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GH_PAT }}
+          token: ${{ secrets.PAT_TOKEN }}
 
       - name: Update image tag in deployment manifest
         run: |
