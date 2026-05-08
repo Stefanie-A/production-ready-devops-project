@@ -1,1 +1,0 @@
-output "oidc_provider_arn" { value = module.github_oidc_role.arn }

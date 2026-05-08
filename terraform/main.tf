@@ -50,10 +50,3 @@ module "eks" {
   node_max           = var.node_max
   node_desired       = var.node_desired
 }
-
-module "iam" {
-  source            = "./module/iam"
-  project_name      = var.project_name
-  environment       = var.environment
-  github_repo       = var.github_repo
-}
