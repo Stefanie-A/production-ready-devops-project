@@ -190,11 +190,9 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
+
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER }} --region ${{ env.AWS_REGION }}
-
-      - name: Ensure namespace exists
-        run: kubectl create namespace ${{ env.K8S_NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Create GHCR image pull secret
         run: |
@@ -205,29 +203,23 @@ jobs:
             --namespace=${{ env.K8S_NAMESPACE }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
-      - name: Apply Kubernetes manifests
+      - name: Deploy via Helm
         run: |
-          kubectl apply -f k8s/namespace.yaml
-          kubectl apply -f k8s/deployment.yaml
-          kubectl apply -f k8s/service.yaml
-
-      - name: Update deployment image tag
-        run: |
-          kubectl set image deployment/${{ env.DEPLOYMENT_NAME }} \
-            todo-api=${{ env.IMAGE_NAME }}:${{ github.sha }} \
-            -n ${{ env.K8S_NAMESPACE }}
-
-      - name: Verify rollout
-        run: |
-          kubectl rollout status deployment/${{ env.DEPLOYMENT_NAME }} \
-            -n ${{ env.K8S_NAMESPACE }} --timeout=180s
+          helm upgrade --install todo-api ./helm/todo-api \
+            --namespace ${{ env.K8S_NAMESPACE }} \
+            --create-namespace \
+            --set image.repository=${{ env.IMAGE_NAME }} \
+            --set image.tag=${{ github.sha }} \
+            --set imagePullSecrets[0].name=ghcr-pull-secret \
+            --wait \
+            --timeout 3m
 
       - name: Print app URL
         run: |
           echo "App URL:"
           kubectl get svc todo-api -n ${{ env.K8S_NAMESPACE }} \
             -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
-
+            
   gitops-update:
     name: GitOps Image Tag Update
     runs-on: ubuntu-latest
