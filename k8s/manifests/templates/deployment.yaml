@@ -14,15 +14,27 @@ spec:
     metadata:
       labels:
         app: todo-api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
     spec:
+      imagePullSecrets:
+        - name: ghcr-secret
       containers:
         - name: todo-api
-          image: ghcr.io/stefanie-a/todo-api:369dca0db549477552cb0257508a16426b38c25f
+          image: "ghcr.io/stefanie-a/todo-api:v1.0.5"
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
           env:
             - name: DATABASE_URL
               value: "sqlite:///./todos.db"
+            - name: METRICS_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: metrics-secret
+                  key: api-key
           resources:
             requests:
               cpu: "100m"
@@ -43,4 +55,4 @@ spec:
               port: 8000
             initialDelaySeconds: 5
             periodSeconds: 10
-      terminationGracePeriodSeconds: 30
+  

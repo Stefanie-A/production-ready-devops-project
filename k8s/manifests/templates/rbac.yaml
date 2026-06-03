@@ -1,0 +1,14 @@
+# rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: prometheus-scrape-app
+  namespace: app
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus-kube-prometheus-prometheus
+subjects:
+  - kind: ServiceAccount
+    name: prometheus-kube-prometheus-prometheus
+    namespace: monitoring

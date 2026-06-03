@@ -151,92 +151,92 @@ jobs:
               body: `### Terraform Plan\n\`\`\`hcl\n${plan}\n\`\`\``
             });
 
-  terraform-apply:
-    name: Terraform Apply
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main'
-    environment: production
-    defaults:
-      run:
-        working-directory: terraform
-    steps:
-      - uses: actions/checkout@v4
+  # terraform-apply:
+  #   name: Terraform Apply
+  #   runs-on: ubuntu-latest
+  #   needs: build
+  #   if: github.ref == 'refs/heads/main'
+  #   environment: production
+  #   defaults:
+  #     run:
+  #       working-directory: terraform
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.7.x"
+  #     - uses: hashicorp/setup-terraform@v3
+  #       with:
+  #         terraform_version: "1.7.x"
 
-      - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ env.AWS_REGION }}
+  #     - name: Configure AWS credentials via OIDC
+  #       uses: aws-actions/configure-aws-credentials@v4
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+  #         aws-region: ${{ env.AWS_REGION }}
 
-      - run: terraform init
-      - run: terraform apply -auto-approve
+  #     - run: terraform init
+  #     - run: terraform apply -auto-approve
 
-  deploy:
-    name: Deploy to EKS
-    runs-on: ubuntu-latest
-    needs: [build, terraform-apply]
-    if: github.ref == 'refs/heads/main'
-    environment: production
-    steps:
-      - uses: actions/checkout@v4
+  # deploy:
+  #   name: Deploy to EKS
+  #   runs-on: ubuntu-latest
+  #   needs: [build, terraform-apply]
+  #   if: github.ref == 'refs/heads/main'
+  #   environment: production
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ env.AWS_REGION }}
+  #     - name: Configure AWS credentials via OIDC
+  #       uses: aws-actions/configure-aws-credentials@v4
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+  #         aws-region: ${{ env.AWS_REGION }}
 
-      - name: Update kubeconfig
-        run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER }} --region ${{ env.AWS_REGION }}
+  #     - name: Update kubeconfig
+  #       run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER }} --region ${{ env.AWS_REGION }}
 
-      - name: Create namespace if not exists
-        run: kubectl create namespace app --dry-run=client -o yaml | kubectl apply -f -
+  #     - name: Create namespace if not exists
+  #       run: kubectl create namespace app --dry-run=client -o yaml | kubectl apply -f -
 
 
-      - name: Create GHCR image pull secret
-        run: |
-          kubectl create secret docker-registry ghcr-pull-secret \
-            --docker-server=ghcr.io \
-            --docker-username=${{ github.actor }} \
-            --docker-password=${{ secrets.PAT_TOKEN }} \
-            --namespace=${{ env.K8S_NAMESPACE }} \
-            --dry-run=client -o yaml | kubectl apply -f -
+  #     - name: Create GHCR image pull secret
+  #       run: |
+  #         kubectl create secret docker-registry ghcr-pull-secret \
+  #           --docker-server=ghcr.io \
+  #           --docker-username=${{ github.actor }} \
+  #           --docker-password=${{ secrets.PAT_TOKEN }} \
+  #           --namespace=${{ env.K8S_NAMESPACE }} \
+  #           --dry-run=client -o yaml | kubectl apply -f -
 
-      - name: Deploy manifest
-        run: |
-          kubectl apply -f k8s/todo-api/templates/ -n ${{ env.K8S_NAMESPACE }}
+  #     - name: Deploy manifest
+  #       run: |
+  #         kubectl apply -f k8s/todo-api/templates/ -n ${{ env.K8S_NAMESPACE }}
 
-      - name: Print app URL
-        run: |
-          echo "App URL:"
-          kubectl get svc todo-api -n ${{ env.K8S_NAMESPACE }} \
-            -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+  #     - name: Print app URL
+  #       run: |
+  #         echo "App URL:"
+  #         kubectl get svc todo-api -n ${{ env.K8S_NAMESPACE }} \
+  #           -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
 
-  gitops-update:
-    name: GitOps Image Tag Update
-    runs-on: ubuntu-latest
-    needs: deploy
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.PAT_TOKEN }}
+  # gitops-update:
+  #   name: GitOps Image Tag Update
+  #   runs-on: ubuntu-latest
+  #   needs: deploy
+  #   if: github.ref == 'refs/heads/main'
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         token: ${{ secrets.PAT_TOKEN }}
 
-      - name: Update image tag in deployment manifest
-        run: |
-          sed -i "s|image: ghcr.io.*/todo-api:.*|image: ${{ env.IMAGE_NAME }}:${{ github.sha }}|g" \
-            k8s/todo-api/templates/deployment.yaml
+  #     - name: Update image tag in deployment manifest
+  #       run: |
+  #         sed -i "s|image: ghcr.io.*/todo-api:.*|image: ${{ env.IMAGE_NAME }}:${{ github.sha }}|g" \
+  #           k8s/todo-api/templates/deployment.yaml
 
-      - name: Commit and push
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add k8s/todo-api/templates/deployment.yaml
-          git diff --staged --quiet || \
-            git commit -m "chore: update image tag to ${{ github.sha }} [skip ci]"
-          git push
+  #     - name: Commit and push
+  #       run: |
+  #         git config user.name  "github-actions[bot]"
+  #         git config user.email "github-actions[bot]@users.noreply.github.com"
+  #         git add k8s/todo-api/templates/deployment.yaml
+  #         git diff --staged --quiet || \
+  #           git commit -m "chore: update image tag to ${{ github.sha }} [skip ci]"
+  #         git push
