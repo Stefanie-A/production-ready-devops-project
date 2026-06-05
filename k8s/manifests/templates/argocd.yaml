@@ -6,14 +6,15 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/argoproj/argo-cd.git'
+    repoURL: 'https://github.com/Stefanie-A/production-ready-devops-project.git'
     targetRevision: HEAD
-    path: app
+    path: k8s/manifests
   destination:
     server: 'https://kubernetes.default.svc'
-    namespace: app
+    namespace: argocd
   syncPolicy:
     syncOptions:
+      # Ensure the ArgoCD service account has permissions to create namespaces, or syncs may fail.
       - CreateNamespace=true
     automated:
       prune: true

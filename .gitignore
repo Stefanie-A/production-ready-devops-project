@@ -49,3 +49,5 @@ kubeconfig
 # OS
 .DS_Store
 Thumbs.db
+
+setup.sh

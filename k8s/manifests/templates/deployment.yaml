@@ -23,8 +23,8 @@ spec:
         - name: ghcr-secret
       containers:
         - name: todo-api
-          image: "ghcr.io/stefanie-a/todo-api:v1.0.5"
-          imagePullPolicy: IfNotPresent
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 8000
           env:
