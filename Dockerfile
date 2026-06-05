@@ -8,7 +8,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
-COPY /app .
+COPY app/ ./app
 
 RUN chown -R appuser:appgroup /app
 
