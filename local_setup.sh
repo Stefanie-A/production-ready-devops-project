@@ -46,12 +46,10 @@ kubectl create secret generic metrics-secret \
 
 helm repo update
 helm install prometheus prometheus-community/kube-prometheus-stack \
-  --namespace monitoring \
-  --create-namespace
+  --namespace monitoring
 
 helm install argo argo/argo-cd \
-  --namespace argocd \
-  --create-namespace
+  --namespace argocd
 
 if [ -d "k8s/manifests" ]; then
   helm install manifests k8s/manifests \
