@@ -8,7 +8,7 @@ on:
 
 env:
   REPO_OWNER: ${{ github.repository_owner }}
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/todo-api
+  IMAGE_NAME: ghcr.io/stefanie-a/todo-api
 
 permissions:
   contents: write
