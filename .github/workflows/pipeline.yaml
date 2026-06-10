@@ -77,6 +77,9 @@ jobs:
           pip install pytest
 
       - name: Run Tests
+        env:
+          METRICS_API_KEY: ${{ secrets.METRICS_API_KEY }}
+          DATABASE_URL: sqlite:///./test.db
         run: |
           pytest test/
 
