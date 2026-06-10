@@ -69,16 +69,17 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('app/requirements.txt') }}
 
       - name: Install Dependencies
         run: |
-          pip install -r requirements.txt
+          pip install -r app/requirements.txt
           pip install pytest
 
       - name: Run Tests
+        working-directory: app
         run: |
-         pytest
+          pytest
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
