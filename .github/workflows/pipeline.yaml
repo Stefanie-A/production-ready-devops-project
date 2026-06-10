@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: Build and Deploy
 
 on:
   push:
@@ -7,29 +7,31 @@ on:
     branches: [main]
 
 env:
-  IMAGE_NAME: ghcr.io/stefanie-a/todo-api
-  AWS_REGION: us-east-1
-  EKS_CLUSTER: todo-eks-cluster
-  K8S_NAMESPACE: app
-  DEPLOYMENT_NAME: todo-api-deployment
+  REPO_OWNER: ${{ github.repository_owner }}
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/todo-api
 
 permissions:
-  id-token: write
-  contents: read
+  contents: write
   packages: write
   security-events: write
+  id-token: write
 
 jobs:
   security-scan:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    steps:
+     name: Security Scan
+     runs-on: ubuntu-latest
+     steps:
       - uses: actions/checkout@v4
 
       - name: Gitleaks — Secret Detection
         uses: gitleaks/gitleaks-action@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       - name: Bandit — Python SAST
         run: |
@@ -42,201 +44,99 @@ jobs:
           directory: terraform/
           framework: terraform
           soft_fail: true   # warn only; set false to block on IaC issues
-
-  test:
-    name: Run Tests
+  
+  
+  build-and-push:
     runs-on: ubuntu-latest
     needs: security-scan
+    if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
+      - name: Set Image Tag
+        run: |
+          echo "IMAGE_TAG=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_ENV
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Run pytest
-        run: pytest test/ -v --tb=short
-
-  build:
-    name: Build & Scan Image
-    runs-on: ubuntu-latest
-    needs: test
-    outputs:
-      image_tag: ${{ github.sha }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GHCR
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.PAT_TOKEN }}
+          password: ${{ secrets.PAT }}
 
-      - name: Build image
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run Tests
+        run: |
+         pytest
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Build Image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: false
-          tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           load: true
 
       - name: Trivy — Container Vulnerability Scan
+        id: trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           format: sarif
           output: trivy-results.sarif
           severity: CRITICAL,HIGH
-          exit-code: 0
-          
-      - name: Push image to GHCR
-        if: github.ref == 'refs/heads/main'
-        uses: docker/build-push-action@v5
+          exit-code: 1
+          ignore-unfixed: true
+
+      - name: Upload Trivy Results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
         with:
-          context: .
-          push: true
-          tags: |
-            ${{ env.IMAGE_NAME }}:${{ github.sha }}
-            ${{ env.IMAGE_NAME }}:latest
-          cache-from: type=gha
+          sarif_file: trivy-results.sarif
 
-  terraform-plan:
-    name: Terraform Plan
-    runs-on: ubuntu-latest
-    needs: security-scan
-    if: github.event_name == 'pull_request'
-    defaults:
-      run:
-        working-directory: terraform
-    steps:
-      - uses: actions/checkout@v4
+      - name: Push Image
+        run: |
+          docker push \
+          ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
 
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.7.x"
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+      
+      - name: Helm Lint
+        run: helm lint k8s/manifests
 
-      - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+      - name: Helm Template
+        run: helm template k8s/manifests > /dev/null
 
-      - run: terraform init
-      - run: terraform validate
-      - name: Terraform Plan
-        id: plan
-        run: terraform plan -no-color 2>&1 | tee plan.txt
+      - name: Install yq
+        uses: mikefarah/yq@v4
 
-      - name: Comment plan on PR
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const plan = fs.readFileSync('terraform/plan.txt', 'utf8').slice(0, 60000);
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `### Terraform Plan\n\`\`\`hcl\n${plan}\n\`\`\``
-            });
+      - name: Update Helm Image Tag
+        run: |
+          yq -i '.image.tag = env(IMAGE_TAG)' \
+          k8s/manifests/values.yaml
 
-  # terraform-apply:
-  #   name: Terraform Apply
-  #   runs-on: ubuntu-latest
-  #   needs: build
-  #   if: github.ref == 'refs/heads/main'
-  #   environment: production
-  #   defaults:
-  #     run:
-  #       working-directory: terraform
-  #   steps:
-  #     - uses: actions/checkout@v4
-
-  #     - uses: hashicorp/setup-terraform@v3
-  #       with:
-  #         terraform_version: "1.7.x"
-
-  #     - name: Configure AWS credentials via OIDC
-  #       uses: aws-actions/configure-aws-credentials@v4
-  #       with:
-  #         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-  #         aws-region: ${{ env.AWS_REGION }}
-
-  #     - run: terraform init
-  #     - run: terraform apply -auto-approve
-
-  # deploy:
-  #   name: Deploy to EKS
-  #   runs-on: ubuntu-latest
-  #   needs: [build, terraform-apply]
-  #   if: github.ref == 'refs/heads/main'
-  #   environment: production
-  #   steps:
-  #     - uses: actions/checkout@v4
-
-  #     - name: Configure AWS credentials via OIDC
-  #       uses: aws-actions/configure-aws-credentials@v4
-  #       with:
-  #         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-  #         aws-region: ${{ env.AWS_REGION }}
-
-  #     - name: Update kubeconfig
-  #       run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER }} --region ${{ env.AWS_REGION }}
-
-  #     - name: Create namespace if not exists
-  #       run: kubectl create namespace app --dry-run=client -o yaml | kubectl apply -f -
-
-
-  #     - name: Create GHCR image pull secret
-  #       run: |
-  #         kubectl create secret docker-registry ghcr-pull-secret \
-  #           --docker-server=ghcr.io \
-  #           --docker-username=${{ github.actor }} \
-  #           --docker-password=${{ secrets.PAT_TOKEN }} \
-  #           --namespace=${{ env.K8S_NAMESPACE }} \
-  #           --dry-run=client -o yaml | kubectl apply -f -
-
-  #     - name: Deploy manifest
-  #       run: |
-  #         kubectl apply -f k8s/todo-api/templates/ -n ${{ env.K8S_NAMESPACE }}
-
-  #     - name: Print app URL
-  #       run: |
-  #         echo "App URL:"
-  #         kubectl get svc todo-api -n ${{ env.K8S_NAMESPACE }} \
-  #           -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
-
-  # gitops-update:
-  #   name: GitOps Image Tag Update
-  #   runs-on: ubuntu-latest
-  #   needs: deploy
-  #   if: github.ref == 'refs/heads/main'
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         token: ${{ secrets.PAT_TOKEN }}
-
-  #     - name: Update image tag in deployment manifest
-  #       run: |
-  #         sed -i "s|image: ghcr.io.*/todo-api:.*|image: ${{ env.IMAGE_NAME }}:${{ github.sha }}|g" \
-  #           k8s/todo-api/templates/deployment.yaml
-
-  #     - name: Commit and push
-  #       run: |
-  #         git config user.name  "github-actions[bot]"
-  #         git config user.email "github-actions[bot]@users.noreply.github.com"
-  #         git add k8s/todo-api/templates/deployment.yaml
-  #         git diff --staged --quiet || \
-  #           git commit -m "chore: update image tag to ${{ github.sha }} [skip ci]"
-  #         git push
+      - name: Commit Updated Helm Values
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git pull --rebase origin main
+          git add k8s/manifests/values.yaml
+          git diff --staged --quiet ||git commit -m "Update image tag to ${{ env.IMAGE_TAG }} [skip ci]"
+          git push 

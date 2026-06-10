@@ -51,3 +51,4 @@ kubeconfig
 Thumbs.db
 
 setup.sh
+.vscode
