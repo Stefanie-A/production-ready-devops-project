@@ -64,7 +64,7 @@ fi
 if ! helm status falco -n falco >/dev/null 2>&1; then
   helm install falco falcosecurity/falco \
     --namespace falco \
-    --set tty=true
+    --set tty=true 
 fi
 
 if [ -d "k8s/manifests" ]; then
