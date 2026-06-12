@@ -61,6 +61,11 @@ if ! helm status argo -n argocd >/dev/null 2>&1; then
   kubectl wait --for=condition=Established --timeout=120s crd/applications.argoproj.io >/dev/null 2>&1
 fi
 
+if ! helm status argocd-image-updater -n argocd >/dev/null 2>&1; then
+  helm install argocd-image-updater argo/argocd-image-updater \
+    --namespace argocd 
+fi
+
 if ! helm status falco -n falco >/dev/null 2>&1; then
   helm install falco falcosecurity/falco \
     --namespace falco \
