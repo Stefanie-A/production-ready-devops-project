@@ -9,6 +9,15 @@ metadata:
     argocd-image-updater.argoproj.io/todo-api.update-strategy: newest-build
     argocd-image-updater.argoproj.io/write-back-method: git
 spec:
+  ignoreDifferences:
+  - group: apps
+    kind: Deployment
+    jsonPointers:
+    - /spec/template/spec/containers/0/resources
+  - group: apps
+    kind: Deployment
+    managedFieldsManagers:
+    - kube-controller-manager
   project: default
   source:
     repoURL: 'https://github.com/Stefanie-A/production-ready-devops-project.git'
