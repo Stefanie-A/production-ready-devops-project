@@ -17,8 +17,14 @@
 set -euo pipefail
 
 if [[ -z "${GIT_TOKEN:-}" ]]; then
-  echo "ERROR: GIT_TOKEN is not set. Export it before running ./local_setup.sh."
+  echo "ERROR: GIT_TOKEN is not set. Export it before running ./bootstrap.sh."
   echo "Example: export GIT_TOKEN=your_token_here"
+  exit 1
+fi
+
+if [[ -z "${SLACK_WEBHOOK_URL:-}" ]]; then
+  echo "ERROR: SLACK_WEBHOOK_URL is not set. Export it before running ./bootstrap.sh."
+  echo "Example: export SLACK_WEBHOOK_URL=your_webhook_url_here"
   exit 1
 fi
 
@@ -72,7 +78,7 @@ if ! helm status falco -n falco >/dev/null 2>&1; then
     --set tty=true \
     --set falcosidekick.enabled=true \
     --set falcosidekick.webui.enabled=true \
-    --set falcosidekick.config.slack.webhookurl="https://hooks.slack.com/services/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" \
+    --set falcosidekick.config.slack.webhookurl="$SLACK_WEBHOOK_URL" \
     --set falcosidekick.config.slack.minimumpriority=warning
 fi
 
