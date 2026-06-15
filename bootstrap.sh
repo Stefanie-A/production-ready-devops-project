@@ -69,7 +69,11 @@ fi
 if ! helm status falco -n falco >/dev/null 2>&1; then
   helm install falco falcosecurity/falco \
     --namespace falco \
-    --set tty=true 
+    --set tty=true \
+    --set falcosidekick.enabled=true \
+    --set falcosidekick.webui.enabled=true \
+    --set falcosidekick.config.slack.webhookurl="https://hooks.slack.com/services/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" \
+    --set falcosidekick.config.slack.minimumpriority=warning
 fi
 
 if [ -d "k8s/manifests" ]; then
