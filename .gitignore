@@ -50,5 +50,8 @@ kubeconfig
 .DS_Store
 Thumbs.db
 
-setup.sh
+bootstrap.sh
+env.sh
 .vscode
+variables.sh
+terraform.tfstate

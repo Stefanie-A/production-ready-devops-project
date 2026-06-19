@@ -3,14 +3,20 @@ TF_DIR := terraform
 up:
 	kind create cluster --name my-cluster
 
-clean:
+down:
 	kind delete cluster --name my-cluster
 
-tf_plan:
+init:
+	cd $(TF_DIR) && terraform init
+
+validate:
+	cd $(TF_DIR) && terraform validate
+
+plan:
 	cd $(TF_DIR) && terraform plan
 
-tf_up:
-	cd $(TF_DIR) && terraform apply auto-approve
+apply:
+	cd $(TF_DIR) && terraform apply -auto-approve
 
-tf_down:
-	cd $(TF_DIR) && terraform destroy auto-approve
+destroy:
+	cd $(TF_DIR) && terraform destroy -auto-approve

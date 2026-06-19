@@ -1,0 +1,10 @@
+#  - name: Terraform Apply
+#         env:
+#           TF_VAR_ghcr_username: ${{ github.actor }}
+#           TF_VAR_ghcr_pat: ${{ secrets.PAT }}
+#           TF_VAR_metrics_api_key: ${{ secrets.METRICS_API_KEY }}
+#           TF_VAR_repo_username: ${{ github.actor }}
+#           TF_VAR_repo_pat: ${{ secrets.PAT }}
+#         run: |
+#           cd terraform
+#           terraform apply -auto-approve

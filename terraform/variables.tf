@@ -40,7 +40,7 @@ variable "node_min" {
 
 variable "node_max" {
   type    = number
-  default = 5
+  default = 3
 }
 
 variable "node_instance_type" {
@@ -71,4 +71,14 @@ variable "github_repo" {
   description = "GitHub repository in the format owner/repo-name"
   type        = string
   default     = "Stefanie/production-ready-devops-project"
+}
+
+variable "github_username" { type = string }
+variable "github_pat" {
+  type      = string
+  sensitive = true
+}
+variable "metrics_api_key" {
+  type      = string
+  sensitive = true
 }

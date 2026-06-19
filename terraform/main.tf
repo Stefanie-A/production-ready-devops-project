@@ -50,3 +50,12 @@ module "eks" {
   node_max           = var.node_max
   node_desired       = var.node_desired
 }
+
+module "secrets" {
+  source = "./module/secrets"
+  github_username      = var.github_username
+  github_pat           = var.github_pat
+  metrics_api_key    = var.metrics_api_key
+  oidc_provider_arn  = module.eks.oidc_provider_arn
+  oidc_provider      = module.eks.oidc_provider
+}
